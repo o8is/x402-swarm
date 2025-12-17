@@ -390,24 +390,6 @@ swaggerOptions.definition.info.description = readmeBody;
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
-// Serve Scalar API Reference at root
-app.use(
-  "/",
-  apiReference({
-    pageTitle: "x402 Swarm Storage",
-    spec: {
-      content: swaggerSpec,
-    },
-    hideDownloadButton: true,
-    hideClientButton: true,
-    hideDarkModeToggle: true,
-    showDeveloperTools: "never",
-    customCss: `
-      .darklight-reference { display: none !important; }
-    `,
-  }),
-);
-
 // x402 Server Setup
 const CDP_API_KEY_ID = process.env.CDP_API_KEY_ID;
 const CDP_API_KEY_SECRET = process.env.CDP_API_KEY_SECRET?.replace(/\\n/g, "\n");
@@ -759,6 +741,24 @@ app.post("/upload", upload.array("files"), async (req, res) => {
     });
   }
 });
+
+// Serve Scalar API Reference at root (fallback for non-API routes)
+app.use(
+  "/",
+  apiReference({
+    pageTitle: "x402 Swarm Storage",
+    spec: {
+      content: swaggerSpec,
+    },
+    hideDownloadButton: true,
+    hideClientButton: true,
+    hideDarkModeToggle: true,
+    showDeveloperTools: "never",
+    customCss: `
+      .darklight-reference { display: none !important; }
+    `,
+  }),
+);
 
 app.listen(4021, () => {
   console.log(`Server listening at http://localhost:4021`);
