@@ -12,7 +12,7 @@ RUN npm ci --omit=dev && npm cache clean --force
 RUN npm install -g tsx
 
 # Copy source
-COPY index.ts tsconfig.json ./
+COPY index.ts README.md tsconfig.json ./
 
 # Create directory for secrets (will be mounted as volume)
 RUN mkdir -p /data

@@ -1,7 +1,5 @@
 # x402 Swarm
 
-**Ephemeral Vercel for the AI era.**
-
 Instantly turn any HTML, JSON, image or asset into a public, shareable link. Perfect for publishing AI inference responses, temporary visualizations, or one-off dashboards.
 
 Powered by Swarm decentralized storage and x402 payments. Pay only for the duration you need.
