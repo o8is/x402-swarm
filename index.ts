@@ -1,6 +1,7 @@
 /* eslint-disable jsdoc/require-jsdoc */
 import { config } from "dotenv";
 import express from "express";
+import cors from "cors";
 import multer from "multer";
 import { randomBytes, createCipheriv, createDecipheriv } from "crypto";
 import { existsSync, readFileSync, writeFileSync } from "fs";
@@ -342,6 +343,7 @@ const upload = multer({
 });
 
 const app = express();
+app.use(cors());
 
 // Swagger Configuration
 const swaggerOptions = {
