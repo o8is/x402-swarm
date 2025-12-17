@@ -1,0 +1,6 @@
+node_modules
+.env*
+.score-compose
+deploy.yaml
+compose.yaml
+.server-secrets
