@@ -4,3 +4,4 @@ node_modules
 deploy.yaml
 compose.yaml
 .server-secrets
+score.yaml

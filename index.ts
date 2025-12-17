@@ -367,8 +367,8 @@ const swaggerOptions = {
         x402: {
           type: "apiKey",
           in: "header",
-          name: "X-PAYMENT",
-          description: "x402 Payment Header",
+          name: "PAYMENT-SIGNATURE",
+          description: "x402 Payment Signature Header (v2)",
         },
       },
     },
@@ -400,19 +400,21 @@ server.register(PAYMENT_NETWORK, new ExactEvmScheme());
 
 const routes = {
   "POST /prepare": {
-    accepts: {
-      scheme: "exact",
-      network: PAYMENT_NETWORK,
-      payTo: payTo,
-      price: async (context: any) => {
-        const duration = context.adapter.getQueryParam("duration") as DurationTier;
-
-        if (!duration || typeof duration !== "string" || !PRICING_TIERS[duration]) {
-          throw new Error("Invalid duration");
-        }
-        return PRICING_TIERS[duration].price;
-      },
-    },
+    accepts: [
+      {
+        scheme: "exact",
+        network: PAYMENT_NETWORK,
+        payTo: payTo,
+        price: async (context: any) => {
+          const duration = context.adapter.getQueryParam("duration") as DurationTier;
+          
+          if (!duration || typeof duration !== 'string' || !PRICING_TIERS[duration]) {
+            throw new Error("Invalid duration");
+          }
+          return PRICING_TIERS[duration].price;
+        },
+      }
+    ],
     extensions: {
       ...declareDiscoveryExtension({
         name: "Swarm Storage Upload",
@@ -527,7 +529,7 @@ app.get("/pricing", (_req, res) => {
  *         description: Payment Required
  *         headers:
  *           PAYMENT-REQUIRED:
- *             description: x402 Payment Request Header
+ *             description: x402 Payment Request Header (v2)
  *             schema:
  *               type: string
  *       400:
