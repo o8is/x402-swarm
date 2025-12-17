@@ -372,6 +372,11 @@ const swaggerOptions = {
         },
       },
     },
+    security: [
+      {
+        x402: [],
+      },
+    ],
   },
   apis: ["./index.ts"], // Path to the API docs
 };
