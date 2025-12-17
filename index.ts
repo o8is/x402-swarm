@@ -376,15 +376,28 @@ const swaggerOptions = {
   apis: ["./index.ts"], // Path to the API docs
 };
 
+const readme = readFileSync(join(process.cwd(), "README.md"), "utf8");
+// Strip the first line (header) from the README
+const readmeBody = readme.split("\n").slice(1).join("\n");
+swaggerOptions.definition.info.description = readmeBody;
+
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
 // Serve Scalar API Reference at root
 app.use(
   "/",
   apiReference({
+    pageTitle: "x402 Swarm Storage",
     spec: {
       content: swaggerSpec,
     },
+    hideDownloadButton: true,
+    hideClientButton: true,
+    hideDarkModeToggle: true,
+    showDeveloperTools: "never",
+    customCss: `
+      .darklight-reference { display: none !important; }
+    `,
   }),
 );
 
