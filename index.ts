@@ -486,9 +486,6 @@ app.use(asyncMiddleware(paymentMiddleware(routes, server)));
  *                 maxTotalSize:
  *                   type: string
  *                   example: "100MB"
- *                 serverWallet:
- *                   type: string
- *                   example: "0x..."
  */
 app.get("/pricing", (_req, res) => {
   const tiers = Object.entries(PRICING_TIERS).map(([tier, config]) => ({
@@ -500,7 +497,6 @@ app.get("/pricing", (_req, res) => {
   res.json({
     tiers,
     maxTotalSize: "100MB",
-    serverWallet: serverAccount.address,
   });
 });
 
