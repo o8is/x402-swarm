@@ -30,6 +30,16 @@ import { gnosis } from "viem/chains";
 
 config();
 
+class HttpError extends Error {
+  constructor(
+    public statusCode: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = "HttpError";
+  }
+}
+
 const payTo = process.env.ADDRESS as `0x${string}`;
 
 // Swarm configuration
@@ -411,7 +421,7 @@ const routes = {
           const duration = context.adapter.getQueryParam("duration") as DurationTier;
           
           if (!duration || typeof duration !== 'string' || !PRICING_TIERS[duration]) {
-            throw new Error("Invalid duration");
+            throw new HttpError(400, "Invalid duration");
           }
           return PRICING_TIERS[duration].price;
         },
@@ -437,7 +447,12 @@ const routes = {
   },
 };
 
-app.use(paymentMiddleware(routes, server));
+// Wrap middleware to catch async errors
+const asyncMiddleware = (fn: express.RequestHandler) => (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
+};
+
+app.use(asyncMiddleware(paymentMiddleware(routes, server)));
 
 /**
  * @openapi
@@ -760,6 +775,25 @@ app.use(
     `,
   }),
 );
+
+// Global error handler
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (err instanceof HttpError) {
+    // Log client errors as warnings, not errors
+    console.warn(`[${err.statusCode}] ${err.message}`);
+    res.status(err.statusCode).json({
+      error: err.message,
+    });
+    return;
+  }
+
+  console.error("Unhandled error:", err);
+
+  res.status(500).json({
+    error: err.message || "Internal Server Error",
+    details: process.env.NODE_ENV === "development" ? err.stack : undefined,
+  });
+});
 
 app.listen(4021, () => {
   console.log(`Server listening at http://localhost:4021`);
