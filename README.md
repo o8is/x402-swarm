@@ -28,4 +28,4 @@ We handle the complexity of buying Swarm postage stamps on Gnosis Chain and uplo
 | **7 Days** | $0.03 |
 | **30 Days**| $0.10 |
 
-*Prices include a small margin to cover BZZ volatility and relay costs.*
+*Prices include a small margin to cover BZZ volatility and hosting costs.*
