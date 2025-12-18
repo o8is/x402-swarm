@@ -445,6 +445,7 @@ app.use(paymentMiddleware(routes, server));
  *   get:
  *     summary: Get available pricing tiers
  *     description: Returns the available duration tiers and their prices in USD.
+ *     security: []
  *     responses:
  *       200:
  *         description: Successful response
