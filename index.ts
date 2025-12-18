@@ -606,7 +606,7 @@ app.post("/prepare", async (req, res) => {
  * /upload:
  *   post:
  *     summary: Upload files
- *     description: Upload files to Swarm using a prepared upload token.
+ *     description: Upload files to Swarm using a prepared upload token. Max total size is 100MB.
  *     requestBody:
  *       required: true
  *       content:

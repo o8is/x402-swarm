@@ -17,6 +17,7 @@ We handle the complexity of buying Swarm postage stamps on Gnosis Chain and uplo
 
 2. **Upload**: Use the `uploadToken` to post your files to `/upload`.
    - The token is valid for **10 minutes**.
+   - **Max total upload size: 100MB**.
    - We handle the file chunking, stamping, and upload to the Swarm network.
    - You get back a public gateway URL (e.g., `https://{cid}.bzz.sh/{filename}`).
 
