@@ -48,11 +48,13 @@ const GNOSIS_RPC_URL = process.env.GNOSIS_RPC_URL || "https://rpc.gnosis.gateway
 
 // Payment network configuration
 const NETWORK_ENV = process.env.NETWORK || "base";
-const PAYMENT_NETWORK = NETWORK_ENV.startsWith("eip155:")
-  ? NETWORK_ENV
-  : NETWORK_ENV === "base-sepolia"
-    ? "eip155:84532"
-    : "eip155:8453";
+const PAYMENT_NETWORK = (
+  NETWORK_ENV.startsWith("eip155:")
+    ? NETWORK_ENV
+    : NETWORK_ENV === "base-sepolia"
+      ? "eip155:84532"
+      : "eip155:8453"
+) as `${string}:${string}`;
 
 // Gnosis Chain contract addresses
 const BZZ_ADDRESS = "0xdBF3Ea6F5beE45c02255B2c26a16F300502F68da" as const;
@@ -158,7 +160,7 @@ const walletClient = createWalletClient({
   transport: http(GNOSIS_RPC_URL),
 });
 
-// Replay protection - track used nonces
+// Replay protection by tracking used nonces
 const usedNonces = new Set<string>();
 // Clean up every 5 minutes (tokens only valid 10 min anyway)
 setInterval(() => usedNonces.clear(), 5 * 60 * 1000);
@@ -402,13 +404,19 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
 // x402 Server Setup
 const CDP_API_KEY_ID = process.env.CDP_API_KEY_ID;
-const CDP_API_KEY_SECRET = process.env.CDP_API_KEY_SECRET?.replace(/\\n/g, "\n");
+const CDP_API_KEY_SECRET = process.env.CDP_API_KEY_SECRET;
 
 const facilitatorConfig = createFacilitatorConfig(CDP_API_KEY_ID, CDP_API_KEY_SECRET);
 const facilitatorClient = new HTTPFacilitatorClient(facilitatorConfig);
 
 const server = new x402ResourceServer(facilitatorClient);
 server.register(PAYMENT_NETWORK, new ExactEvmScheme());
+
+interface PriceContext {
+  adapter: {
+    getQueryParam: (key: string) => string | string[] | undefined;
+  };
+}
 
 const routes = {
   "POST /prepare": {
@@ -417,40 +425,41 @@ const routes = {
         scheme: "exact",
         network: PAYMENT_NETWORK,
         payTo: payTo,
-        price: async (context: any) => {
-          const duration = context.adapter.getQueryParam("duration") as DurationTier;
-          
-          if (!duration || typeof duration !== 'string' || !PRICING_TIERS[duration]) {
+        price: async (context: PriceContext) => {
+          const durationParam = context.adapter.getQueryParam("duration");
+          if (typeof durationParam !== "string" || !PRICING_TIERS[durationParam as DurationTier]) {
             throw new HttpError(400, "Invalid duration");
           }
+          const duration = durationParam as DurationTier;
           return PRICING_TIERS[duration].price;
         },
-      }
+      },
     ],
     extensions: {
       ...declareDiscoveryExtension({
-        name: "Swarm Storage Upload",
-        description: "Purchase postage stamps and upload files to Swarm decentralized storage",
         input: {
           duration: "2d",
         },
         output: {
-          success: true,
-          uploadToken: "string",
-          readyAt: "ISO Date",
-          expiresAt: "ISO Date",
-          duration: "2d",
+          example: {
+            success: true,
+            uploadToken: "string",
+            readyAt: "ISO Date",
+            expiresAt: "ISO Date",
+            duration: "2d",
+          },
         },
-        tags: ["storage", "swarm", "upload", "web3"],
       }),
     },
   },
 };
 
 // Wrap middleware to catch async errors
-const asyncMiddleware = (fn: express.RequestHandler) => (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  Promise.resolve(fn(req, res, next)).catch(next);
-};
+const asyncMiddleware =
+  (fn: express.RequestHandler) =>
+  (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
 
 app.use(asyncMiddleware(paymentMiddleware(routes, server)));
 
@@ -773,7 +782,7 @@ app.use(
 );
 
 // Global error handler
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: any, req: express.Request, res: express.Response) => {
   if (err instanceof HttpError) {
     // Log client errors as warnings, not errors
     console.warn(`[${err.statusCode}] ${err.message}`);
