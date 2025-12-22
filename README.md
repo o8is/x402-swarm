@@ -10,7 +10,7 @@ We handle the complexity of buying Swarm postage stamps on Gnosis Chain and uplo
 
 ### Usage Flow
 
-1. **Prepare & Pay**: Call `/prepare` with your desired duration (`2d`, `7d`, or `30d`).
+1. **Prepare & Pay**: Call `/prepare` with your desired duration (`1d`, `7d`, or `14d`).
    - You will receive a `402 Payment Required` response.
    - Pay the requested amount in USDC on Base.
    - Once paid, you receive an `uploadToken`.
@@ -25,8 +25,8 @@ We handle the complexity of buying Swarm postage stamps on Gnosis Chain and uplo
 
 | Duration | Price (USDC) |
 |----------|--------------|
-| **2 Days** | $0.01 |
-| **7 Days** | $0.03 |
-| **30 Days**| $0.10 |
+| **1 Day**  | $0.04 |
+| **7 Days** | $0.25 |
+| **2 Weeks**| $0.50 |
 
 *Prices include a small margin to cover BZZ volatility and hosting costs.*
