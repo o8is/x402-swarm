@@ -6,7 +6,6 @@ import multer from "multer";
 import { randomBytes, createCipheriv, createDecipheriv } from "crypto";
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
-import swaggerJsdoc from "swagger-jsdoc";
 import { apiReference } from "@scalar/express-api-reference";
 import { paymentMiddleware } from "@x402/express";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
@@ -14,6 +13,7 @@ import { x402ResourceServer, HTTPFacilitatorClient } from "@x402/core/server";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { createFacilitatorConfig } from "@coinbase/x402";
 import { StampedUploader } from "@hostasis/swarm-stamper";
+import { buildSwaggerSpec } from "./swagger.js";
 import {
   createPublicClient,
   createWalletClient,
@@ -357,50 +357,7 @@ const upload = multer({
 const app = express();
 app.use(cors());
 
-// Swagger Configuration
-const swaggerOptions = {
-  definition: {
-    openapi: "3.0.0",
-    info: {
-      title: "x402 Swarm Storage API",
-      version: "1.0.0",
-      description: "A decentralized storage service powered by Swarm and x402 payments.",
-    },
-    servers: [
-      {
-        url: "https://x402.o8.is",
-        description: "Production Server",
-      },
-      {
-        url: "http://localhost:4021",
-        description: "Local Development",
-      },
-    ],
-    components: {
-      securitySchemes: {
-        x402: {
-          type: "apiKey",
-          in: "header",
-          name: "PAYMENT-SIGNATURE",
-          description: "x402 Payment Signature Header (v2)",
-        },
-      },
-    },
-    security: [
-      {
-        x402: [],
-      },
-    ],
-  },
-  apis: ["./index.ts"], // Path to the API docs
-};
-
-const readme = readFileSync(join(process.cwd(), "README.md"), "utf8");
-// Strip the first line (header) from the README
-const readmeBody = readme.split("\n").slice(1).join("\n");
-swaggerOptions.definition.info.description = readmeBody;
-
-const swaggerSpec = swaggerJsdoc(swaggerOptions);
+const swaggerSpec = buildSwaggerSpec();
 
 // x402 Server Setup
 const CDP_API_KEY_ID = process.env.CDP_API_KEY_ID;
