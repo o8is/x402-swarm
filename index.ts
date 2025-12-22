@@ -355,6 +355,7 @@ const upload = multer({
   limits: {
     fileSize: INTERNAL_MAX_SIZE, // Allow up to theoretical max per file
   },
+  preservePath: true, // Keep directory structure in filenames (e.g., "assets/image.png")
 });
 
 const app = express();
