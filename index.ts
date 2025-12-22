@@ -165,20 +165,23 @@ const usedNonces = new Set<string>();
 // Clean up every 5 minutes (tokens only valid 10 min anyway)
 setInterval(() => usedNonces.clear(), 5 * 60 * 1000);
 
-// Pricing tiers (in USD). ~3x margin over BZZ costs with volume discount
-// Minimum 2 days due to Swarm's minimumInitialBalancePerChunk
+// Pricing tiers (in USD) with ~1.5x margin over BZZ costs
+// At depth 19 (524k chunks) and BZZ ~$0.15:
+//   1d  = 0.16 BZZ = $0.024 cost → $0.04 price
+//   7d  = 1.14 BZZ = $0.17 cost  → $0.25 price
+//   14d = 2.28 BZZ = $0.34 cost  → $0.50 price
 const PRICING_TIERS = {
-  "2d": { price: "0.01", hours: 48, days: 2 },
-  "7d": { price: "0.03", hours: 24 * 7, days: 7 },
-  "30d": { price: "0.10", hours: 24 * 30, days: 30 },
+  "1d": { price: "0.04", hours: 24, days: 1 },
+  "7d": { price: "0.25", hours: 24 * 7, days: 7 },
+  "14d": { price: "0.50", hours: 24 * 14, days: 14 },
 } as const;
 
 type DurationTier = keyof typeof PRICING_TIERS;
 
 // Token expiry time (10 minutes)
 const TOKEN_EXPIRY_MS = 10 * 60 * 1000;
-// Estimated stamp propagation time (2 minutes)
-const STAMP_PROPAGATION_MS = 2 * 60 * 1000;
+// Estimated stamp propagation time (1 minute)
+const STAMP_PROPAGATION_MS = 1 * 60 * 1000;
 
 // Gnosis chain: ~5 second blocks = ~17280 blocks per day
 const BLOCKS_PER_DAY = 17280n;
@@ -227,9 +230,9 @@ function calculateBalanceForTTL(ttlDays: number, pricePerChunkPerBlock: bigint):
     throw new Error("Price per chunk per block is zero");
   }
   const totalBlocks = BigInt(ttlDays) * BLOCKS_PER_DAY;
-  // Add 20% buffer for price fluctuations
+  // Add 10% buffer for price fluctuations (margin already covers most volatility)
   const baseBalance = totalBlocks * pricePerChunkPerBlock;
-  const bufferedBalance = baseBalance + (baseBalance * 20n) / 100n;
+  const bufferedBalance = baseBalance + (baseBalance * 10n) / 100n;
   return bufferedBalance + 1n;
 }
 
