@@ -6,71 +6,10 @@
   <title>x402 Swarm - Instant Upload</title>
   <link rel="stylesheet" href="https://unpkg.com/@o8is/brand@latest/o8-brand.css">
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    /* Only custom styles not covered by o8-brand.css */
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      background: #000000;
-      color: #ffffff;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    #bgCanvas {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 0;
-      pointer-events: none;
-    }
-
-    .container {
-      max-width: 600px;
-      width: 100%;
-      position: relative;
-      z-index: 1;
-    }
-
-    .card {
-      background: rgba(26, 26, 26, 0.95);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 16px;
-      padding: 40px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-    }
-
-    h1 {
-      font-size: 48px;
-      font-weight: 700;
-      margin-bottom: 8px;
-      background: linear-gradient(135deg, #c0c0c0 0%, #ffffff 25%, #c0c0c0 50%, #8a8a8a 100%);
-      background-size: 200% auto;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      animation: shine 3s linear infinite;
-    }
-
-    @keyframes shine {
-      to { background-position: 200% center; }
-    }
-
-    .subtitle {
-      color: #b0b0b0;
-      margin-bottom: 20px;
-      font-size: 16px;
+    .info-box {
+      text-align: left;
     }
 
     .network-row {
@@ -364,25 +303,6 @@
       display: block;
     }
 
-    .footer {
-      margin-top: 32px;
-      text-align: center;
-      color: #b0b0b0;
-      font-size: 14px;
-      position: relative;
-      z-index: 1;
-    }
-
-    .footer a {
-      color: #7ab8ff;
-      text-decoration: none;
-      transition: color 0.2s;
-    }
-
-    .footer a:hover {
-      color: #4a9eff;
-    }
-
     input[type="file"] {
       display: none;
     }
@@ -391,10 +311,14 @@
 <body>
   <canvas id="bgCanvas"></canvas>
   <div class="container">
-    <div class="card">
-      <h1>x402 Swarm</h1>
-      <p class="subtitle">Drop your files. Pay with crypto. Get instant links.</p>
+    <h1 class="brand">x402 Swarm</h1>
 
+    <p class="description">
+      Drop your files. Pay with USDC. Get instant links.<br>
+      Powered by decentralized Swarm storage and x402 payments.
+    </p>
+
+    <div class="info-box">
       <div class="network-row" id="networkRow">
         <label>Network</label>
         <div class="static-value">Base (mainnet)</div>
@@ -454,10 +378,14 @@
       </div>
     </div>
 
-    <div class="footer">
-      Powered by <a href="https://www.ethswarm.org/" target="_blank">Swarm</a> + 
-      <a href="https://x402hackathon.com" target="_blank">x402</a>
-    </div>
+    <div class="separator"></div>
+
+    <ul class="links">
+      <li><a href="https://o8.is">o8.is</a></li>
+      <li><a href="/">API</a></li>
+      <li><a target="_blank" href="https://www.ethswarm.org/">Swarm</a></li>
+      <li><a target="_blank" href="https://www.x402.org/">x402</a></li>
+    </ul>
   </div>
 
   <script src="/ui.js"></script>

@@ -4,6 +4,8 @@ Instantly turn any HTML, JSON, image or asset into a public, shareable link. Per
 
 Powered by Swarm decentralized storage and x402 payments. Pay only for the duration you need.
 
+**[Try the Demo →](https://x402.o8.is/drop)**
+
 ## How it works
 
 We handle the complexity of buying Swarm postage stamps on Gnosis Chain and uploading stamped content to Swarm. You simply pay with USDC on Base, and we give you a public link to access your content.

@@ -5,14 +5,20 @@ WORKDIR /app
 # Copy package files
 COPY package.json package-lock.json* ./
 
-# Install dependencies
-RUN npm ci --omit=dev && npm cache clean --force
+# Install ALL dependencies (including dev for build)
+RUN npm ci
+
+# Copy all source files (relies on .dockerignore to exclude secrets)
+COPY . .
+
+# Build UI and OpenAPI spec
+RUN npm run build
+
+# Prune dev dependencies
+RUN npm prune --production && npm cache clean --force
 
 # Install tsx for running TypeScript
 RUN npm install -g tsx
-
-# Copy source
-COPY index.ts README.md tsconfig.json ./
 
 # Create directory for secrets (will be mounted as volume)
 RUN mkdir -p /data

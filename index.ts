@@ -13,7 +13,7 @@ import { x402ResourceServer, HTTPFacilitatorClient } from "@x402/core/server";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { createFacilitatorConfig } from "@coinbase/x402";
 import { StampedUploader } from "@hostasis/swarm-stamper";
-import { buildSwaggerSpec } from "./swagger.js";
+import { buildSwaggerSpec } from "./swagger";
 import {
   createPublicClient,
   createWalletClient,
@@ -725,7 +725,7 @@ app.post("/upload", upload.array("files"), async (req, res) => {
 });
 
 // Serve UI page
-app.get("/ui", (_req, res) => {
+app.get("/drop", (_req, res) => {
   res.sendFile(join(process.cwd(), "ui", "index.html"));
 });
 

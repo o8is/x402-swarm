@@ -1,6 +1,28 @@
 node_modules
+npm-debug.log*
+
+# Credentials and secrets
 .env
 .env.*
 .server-secrets
+
+# Git
 .git
 .gitignore
+
+# IDE/Editor
+.vscode
+.idea
+*.swp
+*.swo
+
+# Build artifacts
+dist
+*.log
+
+# CI/CD and deployment configs (not needed in container)
+.score-compose
+compose.yaml
+deploy.yaml
+score.yaml
+Makefile
