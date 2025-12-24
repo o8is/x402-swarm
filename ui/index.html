@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>x402 Swarm - Instant Upload</title>
+  <link rel="stylesheet" href="https://unpkg.com/@o8is/brand@latest/o8-brand.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #000000;
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #bgCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .container {
+      max-width: 600px;
+      width: 100%;
+      position: relative;
+      z-index: 1;
+    }
+
+    .card {
+      background: rgba(26, 26, 26, 0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+
+    h1 {
+      font-size: 48px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #c0c0c0 0%, #ffffff 25%, #c0c0c0 50%, #8a8a8a 100%);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shine 3s linear infinite;
+    }
+
+    @keyframes shine {
+      to { background-position: 200% center; }
+    }
+
+    .subtitle {
+      color: #b0b0b0;
+      margin-bottom: 20px;
+      font-size: 16px;
+    }
+
+    .network-row {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .network-row label {
+      color: #b0b0b0;
+      font-size: 14px;
+    }
+
+    .static-value {
+      padding: 10px 12px;
+      background: rgba(58, 58, 58, 0.4);
+      color: #ffffff;
+      border: 1px solid #3a3a3a;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .server-wallet {
+      grid-column: 1 / -1;
+      color: #7ab8ff;
+      font-size: 13px;
+    }
+
+    .drop-zone {
+      border: 3px dashed #3a3a3a;
+      border-radius: 12px;
+      padding: 60px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: rgba(58, 58, 58, 0.2);
+    }
+
+    .drop-zone:hover {
+      border-color: #4a9eff;
+      background: rgba(74, 158, 255, 0.05);
+    }
+
+    .drop-zone.dragging {
+      border-color: #4a9eff;
+      background: rgba(74, 158, 255, 0.1);
+      transform: scale(1.02);
+    }
+
+    .drop-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .drop-text {
+      font-size: 18px;
+      color: #ffffff;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .drop-hint {
+      font-size: 14px;
+      color: #b0b0b0;
+    }
+
+    .file-info {
+      margin-top: 24px;
+      padding: 16px;
+      background: rgba(58, 58, 58, 0.3);
+      border: 1px solid #3a3a3a;
+      border-radius: 8px;
+      display: none;
+    }
+
+    .file-info.visible {
+      display: block;
+    }
+
+    .file-name {
+      font-weight: 600;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+
+    .file-size {
+      color: #b0b0b0;
+      font-size: 14px;
+    }
+
+    .duration-selector {
+      margin-top: 24px;
+      display: none;
+    }
+
+    .duration-selector.visible {
+      display: block;
+    }
+
+    .duration-label {
+      font-weight: 600;
+      color: #ffffff;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .duration-options {
+      display: flex;
+      gap: 12px;
+    }
+
+    .duration-option {
+      flex: 1;
+      padding: 12px;
+      border: 2px solid #3a3a3a;
+      border-radius: 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: rgba(58, 58, 58, 0.2);
+    }
+
+    .duration-option:hover {
+      border-color: #4a9eff;
+    }
+
+    .duration-option.selected {
+      border-color: #4a9eff;
+      background: rgba(74, 158, 255, 0.1);
+    }
+
+    .duration-name {
+      font-weight: 600;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+
+    .duration-price {
+      color: #4a9eff;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .max-size {
+      margin-top: 12px;
+      text-align: center;
+      color: #b0b0b0;
+      font-size: 13px;
+      padding: 0 12px;
+    }
+
+    .button {
+      width: 100%;
+      padding: 14px;
+      background: #4a9eff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 24px;
+    }
+
+    .button:hover:not(:disabled) {
+      background: #7ab8ff;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(74, 158, 255, 0.4);
+    }
+
+    .button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .progress {
+      margin-top: 24px;
+      display: none;
+    }
+
+    .progress.visible {
+      display: block;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #3a3a3a;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #4a9eff 0%, #7ab8ff 100%);
+      transition: width 0.3s;
+      width: 0%;
+    }
+
+    .progress-text {
+      text-align: center;
+      color: #b0b0b0;
+      font-size: 14px;
+    }
+
+    .result {
+      margin-top: 24px;
+      padding: 20px;
+      background: rgba(74, 222, 128, 0.1);
+      border: 2px solid #4ade80;
+      border-radius: 8px;
+      display: none;
+    }
+
+    .result.visible {
+      display: block;
+    }
+
+    .result-title {
+      font-weight: 600;
+      color: #4ade80;
+      margin-bottom: 12px;
+      font-size: 18px;
+    }
+
+    .result-link {
+      display: block;
+      padding: 12px;
+      background: rgba(58, 58, 58, 0.5);
+      border-radius: 6px;
+      color: #7ab8ff;
+      text-decoration: none;
+      word-break: break-all;
+      margin-bottom: 12px;
+      border: 1px solid #3a3a3a;
+    }
+
+    .result-link:hover {
+      background: rgba(58, 58, 58, 0.7);
+      color: #4a9eff;
+    }
+
+    .copy-button {
+      width: 100%;
+      padding: 10px;
+      background: #4ade80;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .copy-button:hover {
+      background: #38a169;
+    }
+
+    .error {
+      margin-top: 16px;
+      padding: 12px;
+      background: rgba(248, 113, 113, 0.1);
+      border: 1px solid #f87171;
+      border-radius: 8px;
+      color: #f87171;
+      font-size: 14px;
+      display: none;
+    }
+
+    .error.visible {
+      display: block;
+    }
+
+    .wallet-info {
+      margin-top: 16px;
+      padding: 12px;
+      background: rgba(74, 222, 128, 0.1);
+      border: 1px solid #4ade80;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #4ade80;
+      display: none;
+    }
+
+    .wallet-info.visible {
+      display: block;
+    }
+
+    .footer {
+      margin-top: 32px;
+      text-align: center;
+      color: #b0b0b0;
+      font-size: 14px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .footer a {
+      color: #7ab8ff;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer a:hover {
+      color: #4a9eff;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <div class="container">
+    <div class="card">
+      <h1>x402 Swarm</h1>
+      <p class="subtitle">Drop your files. Pay with crypto. Get instant links.</p>
+
+      <div class="network-row" id="networkRow">
+        <label>Network</label>
+        <div class="static-value">Base (mainnet)</div>
+        <span class="server-wallet" id="serverWallet"></span>
+      </div>
+
+      <div class="drop-zone" id="dropZone">
+        <div class="drop-icon">📦</div>
+        <div class="drop-text">Drop files here or click to browse</div>
+        <div class="drop-hint">Max 100MB • HTML, images, JSON, any file</div>
+      </div>
+
+      <input type="file" id="fileInput" multiple>
+
+      <div class="file-info" id="fileInfo">
+        <div class="file-name" id="fileName"></div>
+        <div class="file-size" id="fileSize"></div>
+      </div>
+
+      <div class="duration-selector" id="durationSelector">
+        <label class="duration-label">Storage duration</label>
+        <div class="duration-options">
+          <div class="duration-option selected" data-duration="1d">
+            <div class="duration-name">1 Day</div>
+            <div class="duration-price" data-price="1d">loading...</div>
+          </div>
+          <div class="duration-option" data-duration="7d">
+            <div class="duration-name">7 Days</div>
+            <div class="duration-price" data-price="7d">loading...</div>
+          </div>
+          <div class="duration-option" data-duration="14d">
+            <div class="duration-name">2 Weeks</div>
+            <div class="duration-price" data-price="14d">loading...</div>
+          </div>
+        </div>
+        <div class="max-size" id="maxSize"></div>
+      </div>
+
+      <div class="wallet-info" id="walletInfo"></div>
+
+      <button class="button" id="connectButton">Connect Wallet</button>
+      <button class="button" id="uploadButton" style="display: none;">Prepare Upload & Pay</button>
+      
+      <div class="progress" id="progress">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-text" id="progressText"></div>
+      </div>
+
+      <div class="error" id="error"></div>
+
+      <div class="result" id="result">
+        <div class="result-title">✨ Upload successful!</div>
+        <a class="result-link" id="resultLink" target="_blank" rel="noopener"></a>
+        <button class="copy-button" id="copyButton">Copy Link</button>
+      </div>
+    </div>
+
+    <div class="footer">
+      Powered by <a href="https://www.ethswarm.org/" target="_blank">Swarm</a> + 
+      <a href="https://x402hackathon.com" target="_blank">x402</a>
+    </div>
+  </div>
+
+  <script src="/ui.js"></script>
+  <script src="https://unpkg.com/@o8is/brand@latest/o8-background.js"></script>
+</body>
+</html>

@@ -65,8 +65,7 @@ async function pricing() {
   const data = await res.json();
   console.log("Pricing tiers:");
   console.table(data.tiers);
-  console.log(`Server wallet: ${data.serverWallet}`);
-  console.log(`Max file size: ${data.maxFileSize}, Max files: ${data.maxFiles}`);
+  console.log(`Max total size: ${data.maxTotalSize}`);
 }
 
 async function prepare(duration: string) {

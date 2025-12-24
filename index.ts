@@ -724,6 +724,14 @@ app.post("/upload", upload.array("files"), async (req, res) => {
   }
 });
 
+// Serve UI page
+app.get("/ui", (_req, res) => {
+  res.sendFile(join(process.cwd(), "ui", "index.html"));
+});
+
+// Serve static files before Scalar API Reference (so ui.js is served correctly)
+app.use(express.static("public"));
+
 // Serve Scalar API Reference at root (fallback for non-API routes)
 app.use(
   "/",

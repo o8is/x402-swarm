@@ -3,7 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx index.ts",
+    "dev": "node -e \"import('./scripts/build-ui.js').then(m => m.watchUI())\" & tsx index.ts",
+    "build": "npm run build:ui && npm run build:openapi",
+    "build:ui": "node scripts/build-ui.js",
+    "build:openapi": "tsx scripts/generate-openapi.ts",
     "format": "prettier -c .prettierrc --write \"**/*.{ts,js,cjs,json,md}\"",
     "format:check": "prettier -c .prettierrc --check \"**/*.{ts,js,cjs,json,md}\"",
     "lint": "eslint . --ext .ts --fix",
@@ -12,6 +15,7 @@
   "dependencies": {
     "@coinbase/x402": "^2.0.0",
     "@hostasis/swarm-stamper": "^0.3.0",
+    "@o8is/brand": "^1.1.2",
     "@scalar/express-api-reference": "^0.8.28",
     "@x402/evm": "^2.0.0",
     "@x402/express": "^2.0.0",
@@ -31,6 +35,7 @@
     "@typescript-eslint/eslint-plugin": "^8.29.1",
     "@typescript-eslint/parser": "^8.29.1",
     "dotenv-cli": "^11.0.0",
+    "esbuild": "^0.27.2",
     "eslint": "^9.24.0",
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-jsdoc": "^50.6.9",

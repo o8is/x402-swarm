@@ -5,3 +5,4 @@ deploy.yaml
 compose.yaml
 .server-secrets
 score.yaml
+public/
