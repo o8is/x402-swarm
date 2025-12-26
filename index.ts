@@ -151,13 +151,13 @@ console.log("Fund this wallet with xDAI (gas) and BZZ tokens on Gnosis Chain");
 
 const publicClient = createPublicClient({
   chain: gnosis,
-  transport: http(GNOSIS_RPC_URL),
+  transport: http(GNOSIS_RPC_URL, { timeout: 120_000 }),
 });
 
 const walletClient = createWalletClient({
   account: serverAccount,
   chain: gnosis,
-  transport: http(GNOSIS_RPC_URL),
+  transport: http(GNOSIS_RPC_URL, { timeout: 120_000 }),
 });
 
 // Replay protection by tracking used nonces
