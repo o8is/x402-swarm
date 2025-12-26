@@ -692,6 +692,9 @@ app.post("/upload", upload.array("files"), async (req, res) => {
       batchId: tokenData.batchId,
       privateKey: SERVER_PRIVATE_KEY,
       depth: tokenData.depth,
+      timeout: 120000,      // 120s timeout for slow Swarm gateways
+      retryAttempts: 10,    // More retries for transient network errors
+      concurrency: 5,       // Lower concurrency to reduce connection pressure
     });
 
     // Upload to Swarm
