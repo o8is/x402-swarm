@@ -374,7 +374,18 @@ async function fetchWithPayment(url: string, options: RequestInit = {}) {
     if (retryRes.status === 402) {
       const bodyText = await retryRes.clone().text();
       console.error("Payment rejected. Response:", bodyText);
-      throw new Error("Payment was rejected by server");
+      
+      // Try to parse error from server
+      let errorMessage = "Payment was rejected by server";
+      try {
+        const errorData = JSON.parse(bodyText);
+        if (errorData.error) {
+          errorMessage = errorData.error;
+        }
+      } catch {
+        // If parsing fails, use generic message
+      }
+      throw new Error(errorMessage);
     }
 
     return retryRes;
@@ -414,19 +425,11 @@ uploadButton.addEventListener("click", async () => {
     }
 
     const prepareData = await prepareRes.json();
-    const { uploadToken, readyAt } = prepareData;
+    const { uploadToken } = prepareData;
 
-    updateProgress(60, "Stamp purchased, waiting for propagation...");
+    updateProgress(60, "Stamp purchased, uploading files...");
 
-    // Step 2: Wait for stamp propagation
-    const waitTime = Math.max(0, new Date(readyAt).getTime() - Date.now());
-    if (waitTime > 0) {
-      await new Promise(resolve => setTimeout(resolve, waitTime));
-    }
-
-    updateProgress(70, "Uploading files...");
-
-    // Step 3: Upload files
+    // Build form data
     const formData = new FormData();
     formData.append("uploadToken", uploadToken);
 
@@ -436,14 +439,17 @@ uploadButton.addEventListener("click", async () => {
       formData.append("files", file, filename);
     });
 
+    updateProgress(70, "Uploading to Swarm (this may take a minute)...");
+
+    // Single upload call - server handles stamp propagation internally
     const uploadRes = await fetch(`${API_URL}/upload`, {
       method: "POST",
       body: formData,
     });
 
     if (!uploadRes.ok) {
-      const errorData = await uploadRes.json();
-      throw new Error(errorData.error || "Upload failed");
+      const errorData = await uploadRes.json().catch(() => ({ error: "Upload failed" }));
+      throw new Error(errorData.details || errorData.error || "Upload failed");
     }
 
     const uploadData = await uploadRes.json();

@@ -367,8 +367,46 @@ const swaggerSpec = buildSwaggerSpec();
 const CDP_API_KEY_ID = process.env.CDP_API_KEY_ID;
 const CDP_API_KEY_SECRET = process.env.CDP_API_KEY_SECRET;
 
+if (!CDP_API_KEY_ID || !CDP_API_KEY_SECRET) {
+  console.error("WARNING: CDP_API_KEY_ID or CDP_API_KEY_SECRET not set - payments will fail!");
+} else {
+  console.log(`CDP credentials loaded (key ID: ${CDP_API_KEY_ID.substring(0, 8)}...)`);
+}
+
 const facilitatorConfig = createFacilitatorConfig(CDP_API_KEY_ID, CDP_API_KEY_SECRET);
-const facilitatorClient = new HTTPFacilitatorClient(facilitatorConfig);
+const baseFacilitatorClient = new HTTPFacilitatorClient(facilitatorConfig);
+
+// Store the last verification error for user-friendly messages
+let lastVerifyError: string | null = null;
+
+// Wrap facilitator client to capture errors for better UX
+const facilitatorClient = {
+  async verify(paymentPayload: any, paymentRequirements: any) {
+    try {
+      lastVerifyError = null;
+      return await baseFacilitatorClient.verify(paymentPayload, paymentRequirements);
+    } catch (err: any) {
+      const errorMsg = err.message || String(err);
+      // Extract user-friendly error message
+      if (errorMsg.includes("insufficient_balance")) {
+        lastVerifyError = "Insufficient USDC balance in your wallet. Please add USDC on Base to continue.";
+      } else if (errorMsg.includes("invalid_signature")) {
+        lastVerifyError = "Payment signature is invalid. Please try again.";
+      } else if (errorMsg.includes("expired")) {
+        lastVerifyError = "Payment authorization has expired. Please try again.";
+      } else {
+        lastVerifyError = `Payment verification failed: ${errorMsg}`;
+      }
+      throw err;
+    }
+  },
+  async settle(paymentPayload: any, paymentRequirements: any) {
+    return baseFacilitatorClient.settle(paymentPayload, paymentRequirements);
+  },
+  async getSupported() {
+    return baseFacilitatorClient.getSupported();
+  },
+} as any;
 
 const server = new x402ResourceServer(facilitatorClient);
 server.register(PAYMENT_NETWORK, new ExactEvmScheme());
@@ -419,8 +457,49 @@ const routes = {
 const asyncMiddleware =
   (fn: express.RequestHandler) =>
   (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    Promise.resolve(fn(req, res, next)).catch(next);
+    Promise.resolve(fn(req, res, next)).catch((err) => {
+      console.error("[middleware error]", err);
+      next(err);
+    });
   };
+
+// Debug middleware to log payment flow
+app.use((req, res, next) => {
+  if (req.path === "/prepare") {
+    const paymentHeader = req.headers["payment-signature"];
+    console.log(`[/prepare] Method: ${req.method}, Has payment header: ${!!paymentHeader}`);
+    if (paymentHeader) {
+      // Decode and log partial payload for debugging
+      try {
+        const decoded = JSON.parse(Buffer.from(paymentHeader as string, "base64").toString());
+        console.log("[/prepare] Payment version:", decoded.x402Version);
+        console.log("[/prepare] Accepted network:", decoded.accepted?.network);
+        console.log("[/prepare] Accepted scheme:", decoded.accepted?.scheme);
+      } catch (e) {
+        console.log("[/prepare] Could not decode payment header");
+      }
+    }
+    
+    // Intercept response to inject error message for 402s
+    const originalJson = res.json.bind(res);
+    res.json = (body: any) => {
+      // If it's a 402 with empty body and we have a verify error, inject it
+      if (res.statusCode === 402 && lastVerifyError) {
+        const enrichedBody = { 
+          ...body, 
+          error: lastVerifyError,
+          code: "PAYMENT_VERIFICATION_FAILED"
+        };
+        console.log(`[/prepare] Response status: ${res.statusCode}, body:`, JSON.stringify(enrichedBody).substring(0, 300));
+        lastVerifyError = null; // Clear after use
+        return originalJson(enrichedBody);
+      }
+      console.log(`[/prepare] Response status: ${res.statusCode}, body:`, JSON.stringify(body).substring(0, 200));
+      return originalJson(body);
+    };
+  }
+  next();
+});
 
 app.use(asyncMiddleware(paymentMiddleware(routes, server)));
 
