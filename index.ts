@@ -258,8 +258,8 @@ async function buyStamp(duration: DurationTier): Promise<{ batchId: string; dept
 
   // Calculate balance for TTL
   const calculatedBalance = calculateBalanceForTTL(tier.days, lastPrice);
-  const initialBalancePerChunk =
-    calculatedBalance > minimumBalance ? calculatedBalance : minimumBalance;
+  // Use whichever is larger (calculateBalanceForTTL already includes a 10% buffer)
+  const initialBalancePerChunk = calculatedBalance > minimumBalance ? calculatedBalance : minimumBalance;
 
   // Calculate total BZZ needed
   const totalBZZ = initialBalancePerChunk * (1n << BigInt(depth));
@@ -380,6 +380,7 @@ const upload = multer({
 });
 
 const app = express();
+app.set("trust proxy", true);
 app.use(cors());
 
 const swaggerSpec = buildSwaggerSpec();
@@ -469,18 +470,18 @@ const routes = {
         payTo: payTo,
         price: async (context: PriceContext) => {
           const durationParam = context.adapter.getQueryParam("duration");
-          if (typeof durationParam !== "string" || !PRICING_TIERS[durationParam as DurationTier]) {
-            throw new HttpError(400, "Invalid duration");
+          if (typeof durationParam === "string" && PRICING_TIERS[durationParam as DurationTier]) {
+            return PRICING_TIERS[durationParam as DurationTier].price;
           }
-          const duration = durationParam as DurationTier;
-          return PRICING_TIERS[duration].price;
+          // Default to cheapest tier
+          return PRICING_TIERS["1d"].price;
         },
       },
     ],
     extensions: {
       ...declareDiscoveryExtension({
         input: {
-          duration: "2d",
+          duration: "1d",
         },
         output: {
           example: {
@@ -488,7 +489,7 @@ const routes = {
             uploadToken: "string",
             readyAt: "ISO Date",
             expiresAt: "ISO Date",
-            duration: "2d",
+            duration: "1d",
           },
         },
       }),
@@ -496,23 +497,23 @@ const routes = {
   },
 };
 
-// Wrap middleware to catch async errors
+// Wrap middleware to catch async errors.
 const asyncMiddleware =
   (fn: express.RequestHandler) =>
   (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    Promise.resolve(fn(req, res, next)).catch((err) => {
+    Promise.resolve(fn(req, res, next)).catch(err => {
       console.error("[middleware error]", err);
       next(err);
     });
   };
 
-// Debug middleware to log payment flow
+// Debug middleware to log payment flow.
 app.use((req, res, next) => {
   if (req.path === "/prepare") {
     const paymentHeader = req.headers["payment-signature"];
     console.log(`[/prepare] Method: ${req.method}, Has payment header: ${!!paymentHeader}`);
     if (paymentHeader) {
-      // Decode and log partial payload for debugging
+      // Decode and log partial payload for debugging.
       try {
         const decoded = JSON.parse(Buffer.from(paymentHeader as string, "base64").toString());
         console.log("[/prepare] Payment version:", decoded.x402Version);
@@ -522,29 +523,35 @@ app.use((req, res, next) => {
         console.log("[/prepare] Could not decode payment header");
       }
     }
-    
-    // Intercept response to inject error message for 402s
+
+    // Intercept response to inject error message for 402s.
     const originalJson = res.json.bind(res);
     res.json = (body: any) => {
-      // If it's a 402 with empty body and we have a verify error, inject it
+      // If it's a 402 with empty body and we have a verify error, inject it.
       if (res.statusCode === 402 && lastVerifyError) {
-        const enrichedBody = { 
-          ...body, 
+        const enrichedBody = {
+          ...body,
           error: lastVerifyError,
-          code: "PAYMENT_VERIFICATION_FAILED"
+          code: "PAYMENT_VERIFICATION_FAILED",
         };
-        console.log(`[/prepare] Response status: ${res.statusCode}, body:`, JSON.stringify(enrichedBody).substring(0, 300));
+        console.log(
+          `[/prepare] Response status: ${res.statusCode}, body:`,
+          JSON.stringify(enrichedBody).substring(0, 300),
+        );
         lastVerifyError = null; // Clear after use
         return originalJson(enrichedBody);
       }
-      console.log(`[/prepare] Response status: ${res.statusCode}, body:`, JSON.stringify(body).substring(0, 200));
+      console.log(
+        `[/prepare] Response status: ${res.statusCode}, body:`,
+        JSON.stringify(body).substring(0, 200),
+      );
       return originalJson(body);
     };
   }
   next();
 });
 
-app.use(asyncMiddleware(paymentMiddleware(routes, server)));
+app.use(asyncMiddleware(paymentMiddleware(routes as any, server)));
 
 /**
  * @openapi
@@ -642,12 +649,13 @@ app.get("/pricing", (_req, res) => {
  *         description: Invalid duration
  */
 app.post("/prepare", async (req, res) => {
-  const duration = req.query.duration as DurationTier;
+  const duration = (req.query.duration as DurationTier) || "1d";
 
-  // Validate duration tier (redundant check but good for safety)
-  if (!duration || !PRICING_TIERS[duration]) {
+  // Validate duration tier
+  if (!PRICING_TIERS[duration]) {
+    const valid = Object.keys(PRICING_TIERS).join(", ");
     res.status(400).json({
-      error: "Invalid duration. Must be one of: 2d, 7d, 30d",
+      error: `Invalid duration. Must be one of: ${valid}`,
       availableTiers: Object.keys(PRICING_TIERS),
     });
     return;
@@ -749,7 +757,8 @@ app.post("/upload", upload.array("files"), async (req, res) => {
   // Validate token presence
   if (!uploadToken) {
     res.status(400).json({
-      error: "uploadToken is required in form data",
+      error: "uploadToken is required. Call POST /prepare first to get one.",
+      hint: "POST /prepare?duration=1d (payment required) → returns an uploadToken, then POST /upload with that token and your files.",
     });
     return;
   }
@@ -814,9 +823,9 @@ app.post("/upload", upload.array("files"), async (req, res) => {
       batchId: tokenData.batchId,
       privateKey: SERVER_PRIVATE_KEY,
       depth: tokenData.depth,
-      timeout: 120000,      // 120s timeout for slow Swarm gateways
-      retryAttempts: 10,    // More retries for transient network errors
-      concurrency: 5,       // Lower concurrency to reduce connection pressure
+      timeout: 120000, // 120s timeout for slow Swarm gateways
+      retryAttempts: 10, // More retries for transient network errors
+      concurrency: 5, // Lower concurrency to reduce connection pressure
     });
 
     // Upload to Swarm
@@ -857,26 +866,20 @@ app.get("/drop", (_req, res) => {
 // Serve static files before Scalar API Reference (so ui.js is served correctly)
 app.use(express.static("public"));
 
-// Serve Scalar API Reference at root (fallback for non-API routes)
-app.use(
-  "/",
-  apiReference({
+// Serve Scalar API Reference at the root path only
+app.get("/", (_req, res) => {
+  const handler = apiReference({
     pageTitle: "x402 Swarm Storage",
-    spec: {
-      content: swaggerSpec,
-    },
-    hideDownloadButton: true,
+    content: swaggerSpec,
     hideClientButton: true,
-    hideDarkModeToggle: true,
     showDeveloperTools: "never",
-    customCss: `
-      .darklight-reference { display: none !important; }
-    `,
-  }),
-);
+  } as any);
+  handler(_req, res);
+});
 
-// Global error handler
-app.use((err: any, req: express.Request, res: express.Response) => {
+// Global error handler (Express requires all 4 params to detect error middleware)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   if (err instanceof HttpError) {
     // Log client errors as warnings, not errors
     console.warn(`[${err.statusCode}] ${err.message}`);
