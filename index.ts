@@ -160,10 +160,35 @@ const walletClient = createWalletClient({
   transport: http(GNOSIS_RPC_URL, { timeout: 120_000 }),
 });
 
-// Replay protection by tracking used nonces
-const usedNonces = new Set<string>();
-// Clean up every 5 minutes (tokens only valid 10 min anyway)
-setInterval(() => usedNonces.clear(), 5 * 60 * 1000);
+// Track in-flight and completed uploads for idempotent retries.
+// When an agent's HTTP client times out mid-upload, it can re-submit the same
+// token and either (a) await the still-running upload, (b) get the cached
+// result, or (c) retry if the previous attempt failed.
+interface UploadState {
+  /** The promise resolving to the upload result (or rejection on failure) */
+  promise: Promise<unknown>;
+  /** Resolved result, cached for fast replay */
+  result?: unknown;
+  /** If the upload failed, store the error so the token can be retried */
+  error?: unknown;
+  /** Timestamp for cleanup */
+  createdAt: number;
+}
+
+const uploadStates = new Map<string, UploadState>();
+
+// Clean up finished upload states every 5 minutes (tokens only valid 10 min anyway)
+setInterval(
+  () => {
+    const cutoff = Date.now() - TOKEN_EXPIRY_MS;
+    for (const [nonce, state] of uploadStates) {
+      if (state.createdAt < cutoff) {
+        uploadStates.delete(nonce);
+      }
+    }
+  },
+  5 * 60 * 1000,
+);
 
 // Pricing tiers (in USD) with ~1.5x margin over BZZ costs
 // At depth 19 (524k chunks) and BZZ ~$0.15:
@@ -687,6 +712,7 @@ app.post("/prepare", async (req, res) => {
       readyAt: new Date(now + STAMP_PROPAGATION_MS).toISOString(),
       expiresAt: new Date(now + TOKEN_EXPIRY_MS).toISOString(),
       duration,
+      hint: "POST /upload is idempotent: if your request times out, re-POST with the same uploadToken and files to get the result. The server will resume or return the cached response.",
     });
   } catch (error) {
     console.error("Prepare failed:", error);
@@ -702,7 +728,19 @@ app.post("/prepare", async (req, res) => {
  * /upload:
  *   post:
  *     summary: Upload files
- *     description: Upload files to Swarm using a prepared upload token. Max total size is 100MB.
+ *     description: |
+ *       Upload files to Swarm using a prepared upload token. Max total size is 100MB.
+ *
+ *       **Idempotent / retry-safe**: This endpoint is safe to call multiple times with the
+ *       same `uploadToken`. If your request times out you can simply re-POST with the same
+ *       token and files:
+ *       - If the upload is **still in progress**, the server will wait and return the result
+ *         once it finishes (no duplicate work).
+ *       - If the upload **already succeeded**, the server returns the cached result instantly.
+ *       - If the upload **previously failed**, the server allows a fresh retry.
+ *
+ *       The token remains valid until `expiresAt` (returned by `/prepare`), so you can
+ *       safely retry for up to 10 minutes after preparation.
  *     requestBody:
  *       required: true
  *       content:
@@ -780,16 +818,43 @@ app.post("/upload", upload.array("files"), async (req, res) => {
     return;
   }
 
-  // Check replay protection
-  if (usedNonces.has(tokenData.nonce)) {
-    res.status(401).json({
-      error: "Upload token has already been used",
-    });
-    return;
-  }
+  // Check if this nonce already has an in-flight or completed upload
+  const existing = uploadStates.get(tokenData.nonce);
+  if (existing) {
+    // Previous attempt succeeded — return cached result immediately
+    if (existing.result) {
+      console.log(
+        `[${tokenData.duration}] Returning cached upload result for nonce ${tokenData.nonce.substring(0, 8)}...`,
+      );
+      res.json(existing.result);
+      return;
+    }
 
-  // Mark nonce as used
-  usedNonces.add(tokenData.nonce);
+    // Previous attempt failed — allow a fresh retry
+    if (existing.error) {
+      console.log(
+        `[${tokenData.duration}] Previous upload failed, allowing retry for nonce ${tokenData.nonce.substring(0, 8)}...`,
+      );
+      uploadStates.delete(tokenData.nonce);
+      // Fall through to re-process below
+    } else {
+      // Upload is still in progress — wait for it to finish
+      console.log(
+        `[${tokenData.duration}] Upload already in progress for nonce ${tokenData.nonce.substring(0, 8)}..., awaiting result`,
+      );
+      try {
+        const result = await existing.promise;
+        res.json(result);
+      } catch (error) {
+        console.error("In-flight upload failed:", error);
+        res.status(500).json({
+          error: "Upload failed",
+          details: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+      return;
+    }
+  }
 
   // Validate files
   const files = req.files as Express.Multer.File[];
@@ -809,7 +874,9 @@ app.post("/upload", upload.array("files"), async (req, res) => {
     return;
   }
 
-  try {
+  // Perform the upload, tracked as a promise so concurrent/retry requests
+  // can attach to the same in-flight operation.
+  const uploadPromise = (async () => {
     // Convert multer files to File objects for swarm-stamper
     const swarmFiles = files.map(f => {
       const uint8Array = new Uint8Array(f.buffer);
@@ -825,7 +892,7 @@ app.post("/upload", upload.array("files"), async (req, res) => {
       depth: tokenData.depth,
       timeout: 120000, // 120s timeout for slow Swarm gateways
       retryAttempts: 10, // More retries for transient network errors
-      concurrency: 5, // Lower concurrency to reduce connection pressure
+      concurrency: 20, // Lower concurrency to reduce connection pressure
     });
 
     // Upload to Swarm
@@ -839,17 +906,30 @@ app.post("/upload", upload.array("files"), async (req, res) => {
     const tier = PRICING_TIERS[tokenData.duration];
     const expiresAt = new Date(Date.now() + tier.hours * 60 * 60 * 1000).toISOString();
 
-    // Return success response
-    res.json({
-      success: true,
+    return {
+      success: true as const,
       url: result.url,
       reference: result.reference,
       cid: result.cid,
       expiresAt,
       duration: tokenData.duration,
       filesUploaded: files.length,
-    });
+    };
+  })();
+
+  // Register in-flight upload BEFORE awaiting so concurrent requests can find it
+  const state: UploadState = {
+    promise: uploadPromise,
+    createdAt: Date.now(),
+  };
+  uploadStates.set(tokenData.nonce, state);
+
+  try {
+    const result = await uploadPromise;
+    state.result = result; // Cache for future retries
+    res.json(result);
   } catch (error) {
+    state.error = error; // Mark as failed so next retry can re-attempt
     console.error("Upload failed:", error);
     res.status(500).json({
       error: "Upload failed",
