@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@coinbase/x402": "^2.0.0",
-    "@hostasis/swarm-stamper": "^0.4.0",
+    "@hostasis/swarm-stamper": "^0.4.1",
     "@o8is/brand": "^1.1.2",
     "@scalar/express-api-reference": "^0.8.28",
     "@x402/core": "^2.3.1",
