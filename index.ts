@@ -405,12 +405,21 @@ const facilitatorClient = {
   async verify(paymentPayload: any, paymentRequirements: any) {
     try {
       lastVerifyError = null;
-      return await baseFacilitatorClient.verify(paymentPayload, paymentRequirements);
+      const price =
+        paymentRequirements?.maxAmountRequired ?? paymentRequirements?.price ?? "unknown";
+      const from =
+        paymentPayload?.payload?.authorization?.from ?? paymentPayload?.from ?? "unknown";
+      console.log(`[x402] VERIFY: from=${from}, price=${price}`);
+      const result = await baseFacilitatorClient.verify(paymentPayload, paymentRequirements);
+      console.log(`[x402] VERIFY SUCCESS: from=${from}, price=${price}`);
+      return result;
     } catch (err: any) {
       const errorMsg = err.message || String(err);
+      console.error(`[x402] VERIFY FAILED: ${errorMsg}`);
       // Extract user-friendly error message
       if (errorMsg.includes("insufficient_balance")) {
-        lastVerifyError = "Insufficient USDC balance in your wallet. Please add USDC on Base to continue.";
+        lastVerifyError =
+          "Insufficient USDC balance in your wallet. Please add USDC on Base to continue.";
       } else if (errorMsg.includes("invalid_signature")) {
         lastVerifyError = "Payment signature is invalid. Please try again.";
       } else if (errorMsg.includes("expired")) {
@@ -422,7 +431,20 @@ const facilitatorClient = {
     }
   },
   async settle(paymentPayload: any, paymentRequirements: any) {
-    return baseFacilitatorClient.settle(paymentPayload, paymentRequirements);
+    const price = paymentRequirements?.maxAmountRequired ?? paymentRequirements?.price ?? "unknown";
+    const from = paymentPayload?.payload?.authorization?.from ?? paymentPayload?.from ?? "unknown";
+    console.log(`[x402] SETTLE: from=${from}, price=${price}`);
+    try {
+      const result = await baseFacilitatorClient.settle(paymentPayload, paymentRequirements);
+      const txHash = result?.transaction ?? "no-tx";
+      console.log(`[x402] SETTLE SUCCESS: from=${from}, price=${price}, tx=${txHash}`);
+      return result;
+    } catch (err: any) {
+      console.error(
+        `[x402] SETTLE FAILED: from=${from}, price=${price}, error=${err.message || err}`,
+      );
+      throw err;
+    }
   },
   async getSupported() {
     return baseFacilitatorClient.getSupported();
