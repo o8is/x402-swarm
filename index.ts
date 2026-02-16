@@ -313,13 +313,34 @@ async function buyStamp(duration: DurationTier): Promise<{ batchId: string; dept
     ),
   );
 
-  // Create batch
-  console.log(`[${duration}] Creating batch...`);
+  // Create batch.
+  const createBatchGas = 3_000_000n;
+  console.log(
+    `[${duration}] Creating batch (gas: ${createBatchGas}, balance: ${initialBalancePerChunk}, depth: ${depth}, bucketDepth: ${bucketDepth})...`,
+  );
+
+  // Dry-run to catch revert reasons before spending gas.
+  try {
+    await publicClient.simulateContract({
+      account: serverAccount,
+      address: POSTAGE_STAMP_ADDRESS,
+      abi: PostageStampABI,
+      functionName: "createBatch",
+      args: [serverAccount.address, initialBalancePerChunk, depth, bucketDepth, nonce, true],
+      gas: createBatchGas,
+    });
+  } catch (simErr: any) {
+    const reason = simErr?.shortMessage || simErr?.message || String(simErr);
+    console.error(`[${duration}] createBatch simulation failed:`, reason);
+    throw new Error(`Batch creation would revert: ${reason}`);
+  }
+
   const hash = await walletClient.writeContract({
     address: POSTAGE_STAMP_ADDRESS,
     abi: PostageStampABI,
     functionName: "createBatch",
     args: [serverAccount.address, initialBalancePerChunk, depth, bucketDepth, nonce, true],
+    gas: createBatchGas,
   });
 
   // Wait for receipt and extract batch ID
