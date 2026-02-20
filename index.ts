@@ -943,11 +943,21 @@ app.get("/drop", (_req, res) => {
   res.sendFile(join(process.cwd(), "ui", "index.html"));
 });
 
+// Serve SKILL.md for agent discovery
+app.get("/skill.md", (_req, res) => {
+  res.type("text/markdown; charset=utf-8").sendFile(join(process.cwd(), "SKILL.md"));
+});
+
 // Serve static files before Scalar API Reference (so ui.js is served correctly)
 app.use(express.static("public"));
 
-// Serve Scalar API Reference at the root path only
+// Serve landing page at root
 app.get("/", (_req, res) => {
+  res.sendFile(join(process.cwd(), "static", "landing.html"));
+});
+
+// Serve Scalar API Reference at /docs
+app.get("/docs", (_req, res) => {
   const handler = apiReference({
     pageTitle: "x402 Swarm Storage",
     content: swaggerSpec,

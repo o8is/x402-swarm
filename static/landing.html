@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>x402 Swarm, decentralized storage for agents</title>
+  <meta name="description" content="Turn any file into a public link. Powered by Swarm decentralized storage and x402 payments." />
+  <link rel="stylesheet" href="https://unpkg.com/@o8is/brand@latest/o8-brand.css" />
+  <style>
+    body {
+      display: block;
+      align-items: initial;
+      justify-content: initial;
+      padding: 0;
+      overflow-y: auto;
+      font-family: monospace;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    @media (min-width: 48rem) {
+      .page { padding: 3rem 2rem; }
+    }
+
+    /* Fade-in */
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: .6s ease-out both fade-in; }
+    .fade-in-1 { animation-delay: 0s; }
+    .fade-in-2 { animation-delay: .1s; }
+    .fade-in-3 { animation-delay: .2s; }
+    .fade-in-4 { animation-delay: .3s; }
+    .fade-in-5 { animation-delay: .4s; }
+    .fade-in-6 { animation-delay: .5s; }
+    .fade-in-7 { animation-delay: .6s; }
+
+    /* Hero */
+    .hero {
+      padding: 4rem 0 2rem;
+      text-align: left;
+    }
+    .hero .brand {
+      text-align: left;
+      margin-bottom: 0.25rem;
+    }
+    .hero .service-name {
+      text-align: left;
+      margin-bottom: 1.5rem;
+    }
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--o8-gray-200);
+      line-height: 1.8;
+    }
+
+    .cta-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-top: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .cta-link {
+      font-size: 0.9rem;
+      color: var(--o8-gray-300);
+      text-decoration: none;
+      transition: color 0.3s ease;
+      font-family: monospace;
+    }
+    .cta-link:hover { color: var(--o8-white); }
+
+    /* Sections */
+    .section { margin-bottom: 2.5rem; }
+
+    h2 {
+      color: var(--o8-primary);
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--o8-border);
+      letter-spacing: 1px;
+    }
+
+    .section-desc {
+      color: #aaa;
+      font-size: 0.95rem;
+      line-height: 1.8;
+      margin-bottom: 1.5rem;
+    }
+
+    .section-desc a {
+      color: var(--o8-primary-light);
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+    .section-desc a:hover { color: var(--o8-white); }
+
+    /* Stats grid */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+      margin: 0;
+    }
+
+    .stat {
+      background: var(--o8-surface);
+      border: 1px solid var(--o8-border);
+      padding: 1.2rem;
+      text-align: center;
+      backdrop-filter: blur(10px);
+      transition: border-color 0.2s ease;
+    }
+    .stat:hover { border-color: var(--o8-border-hover); }
+
+    .stat-value {
+      font-size: 2rem;
+      color: var(--o8-primary);
+      font-weight: bold;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--o8-gray-300);
+      text-transform: uppercase;
+      margin-top: 0.3rem;
+      letter-spacing: 0.05em;
+    }
+
+    /* Feature list */
+    .features {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .features li {
+      padding: 0.6rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: #aaa;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    .features li:last-child { border-bottom: none; }
+
+    .features li::before {
+      content: '>';
+      color: var(--o8-primary);
+      margin-right: 0.8rem;
+      font-weight: bold;
+    }
+
+    .features a {
+      color: var(--o8-primary-light);
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+    .features a:hover { color: var(--o8-white); }
+
+    /* Terminal */
+    .terminal {
+      background: rgba(13, 13, 13, 0.8);
+      border: 1px solid var(--o8-border);
+      padding: 1.5rem;
+      font-size: 0.85rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      backdrop-filter: blur(10px);
+      margin-top: 1rem;
+    }
+
+    .terminal { color: var(--o8-gray-100); }
+    .terminal .prompt { color: var(--o8-primary); }
+    .terminal .cmd { color: #fff; font-weight: bold; }
+    .terminal .flag { color: var(--o8-primary-light); }
+    .terminal .str { color: var(--o8-tertiary-light); }
+    .terminal .output { color: var(--o8-gray-200); }
+    .terminal .comment { color: var(--o8-gray-300); }
+    .blink { animation: blink-cursor 1s step-end infinite; }
+    @keyframes blink-cursor { 50% { opacity: 0; } }
+
+    .terminal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .terminal-title {
+      font-size: 0.75rem;
+      color: var(--o8-gray-300);
+    }
+
+    .copy-btn {
+      background: none;
+      border: none;
+      color: var(--o8-gray-300);
+      font-size: 0.75rem;
+      cursor: pointer;
+      font-family: monospace;
+      transition: color 0.3s ease;
+    }
+    .copy-btn:hover { color: var(--o8-white); }
+
+    /* Result output */
+    .result-output {
+      margin-top: 0.5rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .result-output code {
+      color: var(--o8-success);
+      font-size: 0.85rem;
+    }
+
+    .result-output p {
+      margin-top: 0.4rem;
+      color: var(--o8-gray-300);
+      font-size: 0.8rem;
+    }
+
+    /* Pricing grid */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+    @media (min-width: 48rem) {
+      .pricing-grid { grid-template-columns: 1fr 1fr 1fr; }
+    }
+
+    .price-card {
+      background: var(--o8-surface);
+      border: 1px solid var(--o8-border);
+      padding: 1.2rem;
+      backdrop-filter: blur(10px);
+      transition: border-color 0.2s ease;
+    }
+    .price-card:hover { border-color: var(--o8-border-hover); }
+
+    .price-duration {
+      font-size: 0.8rem;
+      color: var(--o8-gray-300);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.4rem;
+    }
+
+    .price-amount {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: var(--o8-white);
+    }
+
+    .price-card ul {
+      margin-top: 0.6rem;
+      list-style: none;
+      font-size: 0.8rem;
+      color: var(--o8-gray-300);
+      padding: 0;
+    }
+
+    .price-card li { margin-bottom: 0.2rem; }
+    .price-card code {
+      font-size: 0.75rem;
+      color: var(--o8-primary);
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 2rem 0;
+      color: var(--o8-gray-400);
+      font-size: 0.8rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      margin-top: 2rem;
+    }
+
+    footer a {
+      color: var(--o8-gray-300);
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+    footer a:hover { color: var(--o8-white); }
+
+    .footer-nav {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      list-style: none;
+      padding: 0;
+      margin: 0 0 1rem 0;
+    }
+
+    /* Agent onboarding steps */
+    .agent-steps {
+      list-style: none;
+      padding: 0;
+      margin: 1.5rem 0 0;
+      counter-reset: step;
+    }
+
+    .agent-steps li {
+      counter-increment: step;
+      padding: 0.8rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: var(--o8-gray-200);
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    .agent-steps li:last-child { border-bottom: none; }
+
+    .agent-steps li::before {
+      content: counter(step) '. ';
+      color: var(--o8-primary);
+      font-weight: bold;
+      font-size: 0.85rem;
+    }
+
+    .agent-steps code {
+      display: block;
+      background: rgba(13, 13, 13, 0.8);
+      border: 1px solid var(--o8-border);
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      color: var(--o8-primary-light);
+      margin-top: 0.4rem;
+      overflow-x: auto;
+    }
+
+    .agent-steps .magic-phrase {
+      color: var(--o8-white);
+      font-style: italic;
+    }
+
+    .skill-url {
+      margin-top: 1rem;
+      font-size: 0.8rem;
+      color: var(--o8-gray-300);
+    }
+
+    .skill-url a {
+      color: var(--o8-primary-light);
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+    .skill-url a:hover { color: var(--o8-white); }
+
+    /* Collapsible manual section */
+    details.manual-section {
+      margin-bottom: 2.5rem;
+    }
+
+    details.manual-section summary {
+      color: var(--o8-primary);
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--o8-border);
+      letter-spacing: 1px;
+      cursor: pointer;
+      font-family: monospace;
+      font-weight: bold;
+      list-style: none;
+      user-select: none;
+    }
+
+    details.manual-section summary::-webkit-details-marker { display: none; }
+
+    details.manual-section summary::before {
+      content: '+ ';
+      color: var(--o8-gray-300);
+    }
+
+    details.manual-section[open] summary::before {
+      content: '- ';
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+
+  <div class="page">
+    <!-- Hero -->
+    <div class="hero fade-in fade-in-1">
+      <h1 class="brand">x402 Swarm</h1>
+      <h2 class="service-name">Decentralized storage for agents</h2>
+      <p class="hero-sub">
+        Turn any file into a public link. No accounts, no API keys. Your agent handles everything.
+      </p>
+
+      <ol class="agent-steps">
+        <li>Install the <a href="https://docs.cdp.coinbase.com/agentic-wallet/welcome" style="color:var(--o8-primary-light);text-decoration:none">Coinbase</a> agent wallet skills
+          <code>npx skills add coinbase/agentic-wallet-skills</code>
+        </li>
+        <li>Ask your agent to auth and fund your wallet</li>
+        <li>Say: <span class="magic-phrase">"Make a website and upload it using x402"</span></li>
+      </ol>
+
+      <p class="skill-url">Or point any agent to <a href="/skill.md">https://x402.o8.is/skill.md</a></p>
+
+      <div class="cta-row">
+        <a href="/docs" class="view-button view-button--primary" style="text-decoration:none">Read the docs</a>
+        <a href="/drop" class="cta-link">or try the demo →</a>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="section fade-in fade-in-2">
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-value">100MB</div>
+          <div class="stat-label">Max Upload</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">$0.04</div>
+          <div class="stat-label">Starting Price</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">∞</div>
+          <div class="stat-label">File Types</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">0</div>
+          <div class="stat-label">API Keys</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Manual: How it works + Getting started (collapsed) -->
+    <details class="manual-section fade-in fade-in-3">
+      <summary>// MANUAL</summary>
+
+      <h2 style="border-bottom:none;margin-bottom:0.5rem">How it works</h2>
+      <p class="section-desc">
+        We handle the complexity of buying Swarm postage stamps on Gnosis Chain.
+        You pay with USDC on Base via <a href="https://x402.org">x402</a>,
+        and we give you a public link. That's it.
+      </p>
+      <ul class="features">
+        <li>Call <code style="color:var(--o8-primary)">/prepare</code> with your desired duration</li>
+        <li>Pay the USDC amount automatically via x402</li>
+        <li>Receive an upload token (valid for 10 minutes)</li>
+        <li>POST your files to <code style="color:var(--o8-primary)">/upload</code> with the token</li>
+        <li>Get back a public gateway URL</li>
+      </ul>
+
+      <h2 style="border-bottom:none;margin-bottom:0.5rem;margin-top:1.5rem">Getting started</h2>
+      <div class="terminal">
+        <div class="terminal-header">
+          <span class="terminal-title">terminal</span>
+          <button type="button" class="copy-btn" onclick="copyTerminal(this)">Copy</button>
+        </div>
+        <span class="comment"># 1. Pay &amp; get an upload token via awal</span><br>
+        <span class="prompt">agent@swarm:~$</span> <span class="cmd">npx</span> <span class="cmd">awal@latest</span> x402 pay <span class="str">"https://x402.o8.is/prepare?duration=1d"</span> <span class="flag">-X POST</span> <span class="flag">--json</span><br>
+        <span class="output">→ {"uploadToken": "a1b2c3...", "expiresAt": "..."}</span><br>
+        <br>
+        <span class="comment"># 2. Upload your files</span><br>
+        <span class="prompt">agent@swarm:~$</span> <span class="cmd">curl</span> <span class="flag">-s</span> <span class="flag">-X POST</span> <span class="str">"https://x402.o8.is/upload"</span> \<br>
+        &nbsp;&nbsp;<span class="flag">-F</span> <span class="str">"uploadToken=YOUR_TOKEN"</span> \<br>
+        &nbsp;&nbsp;<span class="flag">-F</span> <span class="str">"files=@index.html;type=text/html;filename=index.html"</span> \<br>
+        &nbsp;&nbsp;<span class="flag">-F</span> <span class="str">"files=@photo.jpg;type=image/jpeg;filename=photo.jpg"</span><br>
+        <span class="output">→ {"urls": ["https://abc123.bzz.sh/index.html", ...]}</span><br>
+        <br>
+        <span class="prompt">agent@swarm:~$</span> <span class="blink">_</span>
+      </div>
+      <p class="section-desc" style="font-size: 0.8rem; margin-top: 1rem;">
+        <a href="https://docs.cdp.coinbase.com/agentic-wallet/welcome">awal</a> is the Coinbase Agentic Wallet CLI. It handles x402 payments automatically.
+      </p>
+    </details>
+
+    <!-- Pricing -->
+    <div class="section fade-in fade-in-4">
+      <h2>// PRICING</h2>
+      <p class="section-desc">Pay only for the storage duration you need.</p>
+      <div class="pricing-grid">
+        <div class="price-card">
+          <p class="price-duration">1 Day</p>
+          <p class="price-amount">$0.04</p>
+          <ul>
+            <li>100 MB max</li>
+            <li>24-hours</li>
+            <li><code>POST /prepare</code></li>
+          </ul>
+        </div>
+        <div class="price-card price-card">
+          <p class="price-duration">7 Days</p>
+          <p class="price-amount">$0.25</p>
+          <ul>
+            <li>100 MB max</li>
+            <li>7-days</li>
+            <li><code>POST /prepare</code></li>
+          </ul>
+        </div>
+        <div class="price-card">
+          <p class="price-duration">2 Weeks</p>
+          <p class="price-amount">$0.50</p>
+          <ul>
+            <li>100 MB max</li>
+            <li>14-days</li>
+            <li><code>POST /prepare</code></li>
+          </ul>
+        </div>
+      </div>
+      <p class="section-desc" style="font-size: 0.8rem;">
+        USDC on Base via <a href="https://x402.org">x402</a>. Prices include a small margin for BZZ volatility and hosting.
+      </p>
+    </div>
+
+    <!-- Built for agents -->
+    <div class="section fade-in fade-in-5">
+      <h2>// BUILT FOR AGENTS</h2>
+      <p class="section-desc">
+        Perfect for publishing AI inference responses, temporary visualizations, or one-off dashboards.
+      </p>
+      <ul class="features">
+        <li>Any file type: HTML, JSON, images, assets</li>
+        <li>Public, shareable URLs backed by Swarm decentralized storage</li>
+        <li>No auth tokens to manage. Payment is the auth</li>
+        <li>Agents pay automatically via the <a href="https://x402.org">x402 protocol</a></li>
+      </ul>
+    </div>
+
+    <!-- Footer -->
+    <footer class="fade-in fade-in-6">
+      <ul class="footer-nav">
+        <li><a href="/">Home</a></li>
+        <li><a href="/docs">Docs</a></li>
+        <li><a href="/drop">Demo</a></li>
+        <li><a href="https://github.com/json-web/x402-swarm">GitHub</a></li>
+      </ul>
+      <p>Powered by <a href="https://www.ethswarm.org/">Swarm</a> · Payments via <a href="https://x402.org">x402</a></p>
+    </footer>
+  </div>
+
+  <script src="https://unpkg.com/@o8is/brand@latest/o8-background.js"></script>
+  <script>
+    function copyTerminal(btn) {
+      const terminal = btn.closest('.terminal');
+      const lines = terminal.querySelectorAll('.cmd, .flag, .str');
+      let text = '';
+      // Reconstruct just the command lines
+      terminal.childNodes.forEach(n => {
+        if (n.nodeType === 3) text += n.textContent;
+        else if (n.tagName === 'SPAN' && !n.classList.contains('output') && !n.classList.contains('comment') && !n.classList.contains('prompt'))
+          text += n.textContent;
+        else if (n.tagName === 'BR') text += '\n';
+      });
+      // Clean up to just the curl commands
+      const cmds = text.split('\n')
+        .map(l => l.trim())
+        .filter(l => l.startsWith('curl') || l.startsWith('-') || l.startsWith('"'))
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .replace(/\\ /g, '\\\n  ');
+      navigator.clipboard.writeText(cmds).then(() => {
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>
