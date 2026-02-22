@@ -600,13 +600,13 @@ app.use(asyncMiddleware(paymentMiddleware(routes as any, server)));
  *                     properties:
  *                       tier:
  *                         type: string
- *                         example: "2d"
+ *                         example: "1d"
  *                       price:
  *                         type: string
- *                         example: "0.01"
+ *                         example: "0.04"
  *                       duration:
  *                         type: string
- *                         example: "48 hours"
+ *                         example: "24 hours"
  *                 maxTotalSize:
  *                   type: string
  *                   example: "100MB"
@@ -636,8 +636,8 @@ app.get("/pricing", (_req, res) => {
  *         required: true
  *         schema:
  *           type: string
- *           enum: [2d, 7d, 30d]
- *         description: Duration of the storage (e.g., "2d" for 2 days)
+ *           enum: [1d, 7d, 14d]
+ *         description: Duration of the storage (e.g., "1d" for 1 day)
  *     responses:
  *       200:
  *         description: Upload prepared successfully
@@ -662,7 +662,7 @@ app.get("/pricing", (_req, res) => {
  *                   description: When the upload token expires
  *                 duration:
  *                   type: string
- *                   example: "2d"
+ *                   example: "1d"
  *       402:
  *         description: Payment Required
  *         headers:
