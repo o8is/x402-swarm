@@ -486,40 +486,42 @@ interface PriceContext {
   };
 }
 
-const routes = {
-  "POST /prepare": {
-    accepts: [
-      {
-        scheme: "exact",
-        network: PAYMENT_NETWORK,
-        payTo: payTo,
-        price: async (context: PriceContext) => {
-          const durationParam = context.adapter.getQueryParam("duration");
-          if (typeof durationParam === "string" && PRICING_TIERS[durationParam as DurationTier]) {
-            return PRICING_TIERS[durationParam as DurationTier].price;
-          }
-          // Default to cheapest tier
-          return PRICING_TIERS["1d"].price;
-        },
+const prepareRoute = {
+  accepts: [
+    {
+      scheme: "exact",
+      network: PAYMENT_NETWORK,
+      payTo: payTo,
+      price: async (context: PriceContext) => {
+        const durationParam = context.adapter.getQueryParam("duration");
+        if (typeof durationParam === "string" && PRICING_TIERS[durationParam as DurationTier]) {
+          return PRICING_TIERS[durationParam as DurationTier].price;
+        }
+        // Default to cheapest tier
+        return PRICING_TIERS["1d"].price;
       },
-    ],
-    extensions: {
-      ...declareDiscoveryExtension({
-        input: {
+    },
+  ],
+  extensions: {
+    ...declareDiscoveryExtension({
+      input: {
+        duration: "1d",
+      },
+      output: {
+        example: {
+          success: true,
+          uploadToken: "string",
+          readyAt: "ISO Date",
+          expiresAt: "ISO Date",
           duration: "1d",
         },
-        output: {
-          example: {
-            success: true,
-            uploadToken: "string",
-            readyAt: "ISO Date",
-            expiresAt: "ISO Date",
-            duration: "1d",
-          },
-        },
-      }),
-    },
+      },
+    }),
   },
+};
+
+const routes = {
+  "/prepare": prepareRoute,
 };
 
 // Wrap middleware to catch async errors.
