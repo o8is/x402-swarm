@@ -27,8 +27,8 @@ We handle the complexity of buying Swarm postage stamps on Gnosis Chain and uplo
 
 | Duration | Price (USDC) |
 |----------|--------------|
-| **1 Day**  | $0.04 |
-| **7 Days** | $0.25 |
-| **2 Weeks**| $0.50 |
+| **1 Day**  | $0.01 |
+| **7 Days** | $0.07 |
+| **2 Weeks**| $0.12 |
 
 *Prices include a small margin to cover BZZ volatility and hosting costs.*

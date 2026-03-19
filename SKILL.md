@@ -72,9 +72,9 @@ This is perfect for publishing a complete website.
 
 | Duration | Price (USDC) | Query param |
 |----------|-------------|-------------|
-| 1 Day    | $0.04       | `?duration=1d` |
-| 7 Days   | $0.25       | `?duration=7d` |
-| 14 Days  | $0.50       | `?duration=14d` |
+| 1 Day    | $0.01       | `?duration=1d` |
+| 7 Days   | $0.07       | `?duration=7d` |
+| 14 Days  | $0.12       | `?duration=14d` |
 
 Prices are in USDC on Base, paid automatically via the x402 protocol.
 

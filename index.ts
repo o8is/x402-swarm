@@ -190,15 +190,16 @@ setInterval(
   5 * 60 * 1000,
 );
 
-// Pricing tiers (in USD) with ~1.5x margin over BZZ costs
-// At depth 19 (524k chunks) and BZZ ~$0.15:
-//   1d  = 0.16 BZZ = $0.024 cost → $0.04 price
-//   7d  = 1.14 BZZ = $0.17 cost  → $0.25 price
-//   14d = 2.28 BZZ = $0.34 cost  → $0.50 price
+// Pricing tiers (in USD)
+// At depth 19 (100MB min batch) and BZZ ~$0.093 (~0.7883 BZZ/GB/month):
+//   Actual Swarm cost ≈ $0.0002/day — $0.01 is still a healthy margin.
+//   1d  → $0.01 price
+//   7d  → $0.07 price
+//   14d → $0.12 price
 const PRICING_TIERS = {
-  "1d": { price: "0.04", hours: 24, days: 1 },
-  "7d": { price: "0.25", hours: 24 * 7, days: 7 },
-  "14d": { price: "0.50", hours: 24 * 14, days: 14 },
+  "1d": { price: "0.01", hours: 24, days: 1 },
+  "7d": { price: "0.07", hours: 24 * 7, days: 7 },
+  "14d": { price: "0.12", hours: 24 * 14, days: 14 },
 } as const;
 
 type DurationTier = keyof typeof PRICING_TIERS;
@@ -605,7 +606,7 @@ app.use(asyncMiddleware(paymentMiddleware(routes as any, server)));
  *                         example: "1d"
  *                       price:
  *                         type: string
- *                         example: "0.04"
+ *                         example: "0.01"
  *                       duration:
  *                         type: string
  *                         example: "24 hours"
