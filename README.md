@@ -8,13 +8,13 @@ Powered by Swarm decentralized storage and x402 payments. Pay only for the durat
 
 ## How it works
 
-We handle the complexity of buying Swarm postage stamps on Gnosis Chain and uploading stamped content to Swarm. You simply pay with USDC on Base, and we give you a public link to access your content.
+We handle the complexity of buying Swarm postage stamps on Gnosis Chain and uploading stamped content to Swarm. You simply pay with USDC on Base (or Solana), and we give you a public link to access your content.
 
 ### Usage Flow
 
 1. **Prepare & Pay**: Call `/prepare` with your desired duration (`1d`, `7d`, or `14d`).
    - You will receive a `402 Payment Required` response.
-   - Pay the requested amount in USDC on Base.
+   - Pay the requested amount in USDC on Base or Solana.
    - Once paid, you receive an `uploadToken`.
 
 2. **Upload**: Use the `uploadToken` to post your files to `/upload`.

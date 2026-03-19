@@ -11,6 +11,7 @@ import { paymentMiddleware } from "@x402/express";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { x402ResourceServer, HTTPFacilitatorClient } from "@x402/core/server";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
+import { ExactSvmScheme } from "@x402/svm/exact/server";
 import { createFacilitatorConfig } from "@coinbase/x402";
 import { StampedUploader } from "@hostasis/swarm-stamper";
 import { buildSwaggerSpec } from "./swagger";
@@ -41,6 +42,7 @@ class HttpError extends Error {
 }
 
 const payTo = process.env.ADDRESS as `0x${string}`;
+const solanaPayTo = process.env.SOLANA_ADDRESS;
 
 // Swarm configuration
 const SWARM_GATEWAY = process.env.SWARM_GATEWAY || "https://swarm.o8.is";
@@ -55,6 +57,9 @@ const PAYMENT_NETWORK = (
       ? "eip155:84532"
       : "eip155:8453"
 ) as `${string}:${string}`;
+
+// Solana network configuration (opt-in via SOLANA_ADDRESS env var)
+const SOLANA_NETWORK = "solana:mainnet" as `${string}:${string}`;
 
 // Gnosis Chain contract addresses
 const BZZ_ADDRESS = "0xdBF3Ea6F5beE45c02255B2c26a16F300502F68da" as const;
@@ -147,6 +152,11 @@ const TOKEN_SECRET = Buffer.from(secrets.tokenSecret, "hex");
 const serverAccount = privateKeyToAccount(SERVER_PRIVATE_KEY);
 console.log(`Server wallet: ${serverAccount.address}`);
 console.log(`Payment network: ${PAYMENT_NETWORK}`);
+if (solanaPayTo) {
+  console.log(`Solana payments: enabled (payTo: ${solanaPayTo})`);
+} else {
+  console.log("Solana payments: disabled (set SOLANA_ADDRESS to enable)");
+}
 console.log("Fund this wallet with xDAI (gas) and BZZ tokens on Gnosis Chain");
 
 const publicClient = createPublicClient({
@@ -479,11 +489,23 @@ const facilitatorClient = {
 
 const server = new x402ResourceServer(facilitatorClient);
 server.register(PAYMENT_NETWORK, new ExactEvmScheme());
+if (solanaPayTo) {
+  server.register(SOLANA_NETWORK, new ExactSvmScheme());
+}
 
 interface PriceContext {
   adapter: {
     getQueryParam: (key: string) => string | string[] | undefined;
   };
+}
+
+async function dynamicPrice(context: PriceContext) {
+  const durationParam = context.adapter.getQueryParam("duration");
+  if (typeof durationParam === "string" && PRICING_TIERS[durationParam as DurationTier]) {
+    return PRICING_TIERS[durationParam as DurationTier].price;
+  }
+  // Default to cheapest tier
+  return PRICING_TIERS["1d"].price;
 }
 
 const routes = {
@@ -493,15 +515,18 @@ const routes = {
         scheme: "exact",
         network: PAYMENT_NETWORK,
         payTo: payTo,
-        price: async (context: PriceContext) => {
-          const durationParam = context.adapter.getQueryParam("duration");
-          if (typeof durationParam === "string" && PRICING_TIERS[durationParam as DurationTier]) {
-            return PRICING_TIERS[durationParam as DurationTier].price;
-          }
-          // Default to cheapest tier
-          return PRICING_TIERS["1d"].price;
-        },
+        price: dynamicPrice,
       },
+      ...(solanaPayTo
+        ? [
+            {
+              scheme: "exact" as const,
+              network: SOLANA_NETWORK,
+              payTo: solanaPayTo,
+              price: dynamicPrice,
+            },
+          ]
+        : []),
     ],
     extensions: {
       ...declareDiscoveryExtension({
